@@ -53,5 +53,8 @@ class CIFAR10Dataset(Dataset):
 
         if self.transform:
             img = self.transform(img)
+        else:
+            # If no transform is provided, at least convert to tensor
+            img = torch.from_numpy(np.array(img).transpose(2, 0, 1)).float() / 255.0
 
         return img, label
