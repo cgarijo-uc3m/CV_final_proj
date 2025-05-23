@@ -30,26 +30,26 @@ class CIFAR10Dataset(Dataset):
             for i in range(1, 6):
                 batch_file = os.path.join(data_path, f'data_batch_{i}')
                 batch_dict = unpickle(batch_file)
-                self.data.append(batch_dict[b'data'])
+                # CIFAR-10 data is in HWC format (Height, Width, Channels)
+                self.data.append(batch_dict[b'data'].reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1))
                 self.labels.extend(batch_dict[b'labels'])
         else:
             batch_file = os.path.join(data_path, 'test_batch')
             batch_dict = unpickle(batch_file)
-            self.data.append(batch_dict[b'data'])
+            self.data.append(batch_dict[b'data'].reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1))
             self.labels.extend(batch_dict[b'labels'])
 
-        self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
+        self.data = np.vstack(self.data)  # Now in HWC format
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        img = self.data[index]  # shape: (3, 32, 32)
+        img = self.data[index]  # shape: (32, 32, 3) in HWC format
         label = self.labels[index]
 
-        # Convert to HWC format and then to PIL Image
-        img = img.transpose(1, 2, 0)  # CHW -> HWC
-        img = Image.fromarray(img.astype(np.uint8))  # to PIL
+        # Convert to PIL Image (no need for transpose as data is already in HWC)
+        img = Image.fromarray(img.astype(np.uint8))
 
         if self.transform:
             img = self.transform(img)

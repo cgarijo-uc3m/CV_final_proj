@@ -18,31 +18,27 @@ class CIFAR10DataModule(pl.LightningDataModule):
         
         # Define transforms
         self.train_transforms = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
+            transforms.Resize(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
         
         self.val_test_transforms = transforms.Compose([
+            transforms.Resize(224),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
 
     def setup(self, stage=None):
-        # Create datasets
-        self.train_ds = CIFAR10Dataset(
+        # Create full training dataset
+        full_train_ds = CIFAR10Dataset(
             self.data_path, 
             train=True, 
             transform=self.train_transforms
         )
         
-        self.val_ds = CIFAR10Dataset(
-            self.data_path, 
-            train=True,  # We'll split the training data for validation
-            transform=self.val_test_transforms
-        )
-        
+        # Create test dataset
         self.test_ds = CIFAR10Dataset(
             self.data_path, 
             train=False, 
@@ -50,10 +46,10 @@ class CIFAR10DataModule(pl.LightningDataModule):
         )
         
         # Split training data into train and validation
-        train_size = int(0.9 * len(self.train_ds))
-        val_size = len(self.train_ds) - train_size
+        train_size = int(0.9 * len(full_train_ds))
+        val_size = len(full_train_ds) - train_size
         self.train_ds, self.val_ds = torch.utils.data.random_split(
-            self.train_ds, 
+            full_train_ds, 
             [train_size, val_size]
         )
 
@@ -62,19 +58,24 @@ class CIFAR10DataModule(pl.LightningDataModule):
             self.train_ds, 
             batch_size=self.batch_size, 
             shuffle=True, 
-            num_workers=4
+            num_workers=4,
+            pin_memory=True
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_ds, 
             batch_size=self.batch_size, 
-            num_workers=4
+            shuffle=False, 
+            num_workers=4,
+            pin_memory=True
         )
 
     def test_dataloader(self):
         return DataLoader(
             self.test_ds, 
             batch_size=self.batch_size, 
-            num_workers=4
+            shuffle=False, 
+            num_workers=4,
+            pin_memory=True
         )
